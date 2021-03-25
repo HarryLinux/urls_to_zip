@@ -5,10 +5,18 @@ from fastapi.responses import FileResponse, JSONResponse
 from tempfile import TemporaryDirectory
 from uuid import uuid4
 import os
+import logging
 import asyncio
 import aiohttp
 import aiofiles
 
+logging.basicConfig(
+  format='%(asctime)s %(levelname)-8s %(message)s',
+  level=logging.INFO,
+  datefmt='%Y-%m-%d %H:%M:%S',
+  filename='urls_to_zip.log',
+  encoding='utf-8'
+)
 
 # Data Model for the POST request body items
 class URLData(BaseModel):
@@ -56,17 +64,17 @@ async def loop_session_calls(urls: list[URLData], tmpdir: TemporaryDirectory):
         async with aiofiles.open(f'{tmpdir.name}/{filename_to_arc}', 'wb') as file_to_arc:
 
           await file_to_arc.write(file_contents)
-          print(f'wrote the content to a file for {item.url}')
+          logging.info(f'wrote the content for {item.url} to {filename_to_arc}')
           return file_to_arc
 
     except aiohttp.ClientConnectorError as e:
-      print(f'There has been a connection error: {e}')
+      logging.error(f'There has been a connection error: {e}')
       return {
         'item': item,
         'error': e,
       }
     except Exception as ex:
-      print(f'Unexpected issue: {ex}')
+      logging.error(f'Unexpected issue: {ex}')
       return {
         'item': item,
         'error': ex,
@@ -96,18 +104,18 @@ async def create_zipfile(urls: list[URLData], tmpdir: TemporaryDirectory, zip_id
       with ZipFile(file_path, 'w', compression=ZIP_DEFLATED) as myzip:
         for f in file_list:
           if type(f) == dict and 'error' in f.keys():
-            print(f"URL: {f['item'].url} failed with error: {f['error']}")
+            logging.error(f"URL: {f['item'].url} failed with error: {f['error']}")
             continue
 
           elif f:
             name_to_save = f.name.split('/')[-1]
             # append to the zip archive
             myzip.write(f.name, arcname=name_to_save)
-            print(f'wrote {name_to_save} to myzip')
+            logging.info(f'wrote {name_to_save} to myzip')
           else:
-            print('There has been an issue...f==None')
+            logging.error(f'There has been an issue...file==None\n{f}')
     except Exception as e:
-      print(f'An unrealized exception: {e}')
+      logging.error(f'An unrealized exception: {e}')
 
   zip_files(file_list)
 
@@ -124,7 +132,7 @@ def delete_zip(file_path: str):
   try:
     os.remove(file_path)
   except Exception as e:
-    print(f'An unrealized exception: {e}')
+    logging.error(f'Error removing file at {file_path}: {e}')
 
 
 # Return the zip to client if task is completed, then kickoff 
