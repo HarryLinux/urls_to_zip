@@ -90,7 +90,7 @@ async def create_zipfile(urls: list[URLData], tmpdir: TemporaryDirectory, zip_id
   file_list = await loop_session_calls(urls, tmpdir)
 
   def zip_files(file_list: list) -> str:
-    file_path = f'./tmp/{zip_id}.zip'
+    file_path = f'./{zip_id}.zip'
 
     try:
       with ZipFile(file_path, 'w', compression=ZIP_DEFLATED) as myzip:
@@ -132,7 +132,7 @@ def delete_zip(file_path: str):
 # Send appropriate response otherwise
 @app.get('/get-zip/{zip_id}')
 async def retrieve_zip(zip_id: str, background_tasks: BackgroundTasks):
-  file_path = f'./tmp/{zip_id}.zip'
+  file_path = f'./{zip_id}.zip'
 
   try:
     if task_dict[zip_id] == 'complete' and os.path.exists(file_path):
